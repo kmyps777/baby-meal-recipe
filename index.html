@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>우리아기 이유식 🍼</title>
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#fb7185" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="우리아기 이유식" />
+  <link rel="apple-touch-icon" href="https://fav.farm/🍼" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- ═══════════════════════════════════════════
+       🔥 Firebase 설정
+       Firebase Console → 프로젝트 설정 → 내 앱 → SDK 설정 및 구성
+       아래 firebaseConfig 값을 본인 값으로 교체하세요!
+  ════════════════════════════════════════════ -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBeyTNKEtaf9_M99Att2TL-G9dsTdkWChk",
+      authDomain:        "baby-meal-recipe.firebaseapp.com",
+      projectId:         "baby-meal-recipe",
+      storageBucket:     "baby-meal-recipe.firebasestorage.app",
+      messagingSenderId: "165719026913",
+      appId:             "1:165719026913:web:04751081edf070b19d5ba0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window._db = getFirestore(app);
+    window._firebase = {
+      collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch
+    };
+    window._firebaseReady = true;
+    window.dispatchEvent(new Event("firebaseReady"));
+  </script>
+
+  <script type="text/babel" data-presets="react" src="app.js"></script>
+</body>
+</html>
