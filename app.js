@@ -68,7 +68,8 @@ function App() {
 
   const [selectedStage, setSelectedStage] = useState(null);
   const [selectedCat, setSelectedCat]     = useState(null);
-  const [sortMode, setSortMode]           = useState(false); // 레시피 순서 수정 모드
+  const [sortMode, setSortMode]           = useState(false);
+  const [searchQuery, setSearchQuery]     = useState("");
 
   const [form, setForm]     = useState(() => emptyRecipe(DEFAULT_STAGES));
   const [editId, setEditId] = useState(null);
@@ -140,10 +141,18 @@ function App() {
     });
   })();
 
-  const filtered   = sortedRecipes.filter(r =>
-    (!selectedStage || r.stage === selectedStage) &&
-    (!selectedCat   || (r.categories || []).includes(selectedCat))
-  );
+  const filtered   = sortedRecipes.filter(r => {
+    const q = searchQuery.trim().toLowerCase();
+    if (selectedStage && r.stage !== selectedStage) return false;
+    if (selectedCat && !(r.categories||[]).includes(selectedCat)) return false;
+    if (q) {
+      const inTitle = r.title?.toLowerCase().includes(q);
+      const inIngredients = (r.ingredients||[]).some(ing => ing.name?.toLowerCase().includes(q));
+      const inMemo = r.memo?.toLowerCase().includes(q);
+      if (!inTitle && !inIngredients && !inMemo) return false;
+    }
+    return true;
+  });
   const viewRecipe = recipes.find(r => r.id === viewId) ?? null;
 
   // 레시피 저장
@@ -327,7 +336,22 @@ function App() {
       {/* 필터 (순서변경 모드에서는 숨김) */}
       {!sortMode && (
         <>
-          <div className="px-4 pt-3 pb-1">
+          {/* 검색창 */}
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2 bg-white border border-rose-200 rounded-xl px-3 py-2.5">
+              <span className="text-gray-300 text-base">🔍</span>
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="레시피 이름, 재료로 검색"
+                className="flex-1 text-sm text-gray-700 focus:outline-none bg-transparent"
+              />
+              {searchQuery && (
+                <button onClick={()=>setSearchQuery("")} className="text-gray-300 text-lg leading-none">×</button>
+              )}
+            </div>
+          </div>
+          <div className="px-4 pb-1">
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               <button onClick={()=>setSelectedStage(null)}
                 className={`flex-shrink-0 text-xs rounded-full px-3 py-1.5 font-semibold border transition-colors ${!selectedStage?"bg-rose-400 text-white border-rose-400":"bg-white text-gray-500 border-gray-200"}`}>전체</button>
@@ -358,8 +382,8 @@ function App() {
       <div className="px-4 pb-8 space-y-2">
         {(sortMode ? sortedRecipes : filtered).length === 0 ? (
           <div className="text-center py-16 text-gray-300">
-            <div className="text-5xl mb-3">🥣</div>
-            <p className="text-sm">레시피가 없어요<br/>새 레시피를 추가해보세요!</p>
+            <div className="text-5xl mb-3">{searchQuery ? "🔍" : "🥣"}</div>
+            <p className="text-sm">{searchQuery ? `"${searchQuery}" 검색 결과가 없어요` : "레시피가 없어요\n새 레시피를 추가해보세요!"}</p>
           </div>
         ) : (sortMode ? sortedRecipes : filtered).map((recipe, idx, arr) => (
           <div key={recipe.id}
