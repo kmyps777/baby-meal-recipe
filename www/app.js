@@ -856,7 +856,7 @@ function App() {
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <h3 className="font-bold text-gray-700 mb-3">정보</h3>
           <button className="w-full flex justify-between items-center py-2 text-sm text-gray-600"
-            onClick={()=>window.open("https://kmyps777.github.io/baby-meal-recipe/privacy.html","_blank")}>
+            onClick={()=>window.open("https://kmyps777.github.io/baby-meal-recipe/www/privacy.html","_blank")}>
             <span>개인정보처리방침</span>
             <span className="text-gray-300">›</span>
           </button>
