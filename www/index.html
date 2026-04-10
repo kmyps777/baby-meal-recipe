@@ -59,9 +59,7 @@
       linkWithCredential, EmailAuthProvider, signInWithEmailAndPassword, unlink
     };
 
-    // 익명 로그인 — 자동으로 고유 ID 발급
-    signInAnonymously(auth).catch(console.error);
-
+    // 기존 세션 없을 때만 익명 로그인
     onAuthStateChanged(auth, (user) => {
       if (user) {
         window._uid = user.uid;
@@ -71,6 +69,8 @@
           window._authInitialized = true;
           window.dispatchEvent(new Event("firebaseReady"));
         }
+      } else {
+        signInAnonymously(auth).catch(console.error);
       }
     });
   </script>
