@@ -1,62 +1,55 @@
-# 🍼 우리아기 이유식 레시피 북
+# 🍼 우리아기 이유식 레시피북
 
-Firebase Firestore 기반의 이유식 레시피 관리 앱입니다.
-iPhone · MacBook 등 모든 기기에서 실시간 동기화됩니다.
+Firebase 익명 인증 + Capacitor iOS 앱
 
-## 기능
-- 레시피 추가 / 수정 / 삭제 (삭제 확인 모달)
-- 사진 첨부 (Firebase Storage)
-- 재료, 만드는 순서, 큐브 양, 메모 기록
-- 단계별 분류 (커스텀 가능)
-- 카테고리별 분류 (커스텀 가능)
-- 실시간 Firebase 동기화
-- PWA — iPhone 홈화면에 앱처럼 추가 가능
-
-## 설정 방법
-
-### 1. Firebase config 입력
-`index.html` 파일에서 아래 부분을 본인 Firebase 값으로 교체:
-```js
-const firebaseConfig = {
-  apiKey:            "여기에_API_KEY",
-  authDomain:        "여기에.firebaseapp.com",
-  projectId:         "여기에_PROJECT_ID",
-  storageBucket:     "여기에.appspot.com",
-  messagingSenderId: "여기에_SENDER_ID",
-  appId:             "여기에_APP_ID"
-};
+## 파일 구조
+```
+wooriaagi-babyrecipe/
+├── www/
+│   ├── index.html     # Firebase 설정 + 앱 진입점
+│   ├── app.js         # React 메인 앱
+│   ├── style.css      # 스타일
+│   └── privacy.html   # 개인정보처리방침
+├── capacitor.config.json
+├── package.json
+└── README.md
 ```
 
-### 2. Firebase 규칙 설정
-**Firestore** → 규칙 탭:
+## 설정 순서
+
+### 1. Firebase 설정
+`www/index.html`에서 firebaseConfig 값 교체
+Firebase Console → Authentication → 로그인 방법 → **익명** 활성화 필수!
+
+### 2. Firebase 보안 규칙
+Firestore Rules:
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+    match /recipes/{recipeId} {
+      allow read, write: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+    match /settings/{userId} {
+      allow read, write: if request.auth != null && userId == request.auth.uid;
     }
   }
 }
 ```
 
-**Storage** → 규칙 탭:
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if true;
-    }
-  }
-}
+### 3. Capacitor iOS 설정
+```bash
+npm install
+npx cap add ios
+npx cap sync
+npx cap open ios
 ```
 
-### 3. GitHub Pages 배포
-1. GitHub에 저장소 생성
-2. 파일 4개 업로드 (`index.html`, `app.js`, `style.css`, `README.md`)
-3. Settings → Pages → Branch: main 설정
-4. `https://아이디.github.io/저장소이름` 으로 접속
+### 4. Xcode에서
+- Bundle ID: `com.wooriaagi.babyrecipe`
+- Signing & Capabilities → 본인 Apple Developer 계정 선택
+- 빌드 & 아카이브 → App Store Connect 업로드
 
-### 4. iPhone 홈화면에 추가
-Safari에서 접속 → 공유 버튼(□↑) → 홈 화면에 추가 🍼
+### 5. GitHub Pages (웹 버전)
+www 폴더 안 파일들을 GitHub에 올리면 웹에서도 사용 가능

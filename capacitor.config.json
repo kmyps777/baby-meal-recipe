@@ -1,0 +1,11 @@
+{
+  "appId": "com.wooriaagi.babyrecipe",
+  "appName": "우리아기 이유식",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

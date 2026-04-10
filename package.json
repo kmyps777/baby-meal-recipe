@@ -1,0 +1,17 @@
+{
+  "name": "wooriaagi-babyrecipe",
+  "version": "1.0.0",
+  "description": "우리아기 이유식 레시피북",
+  "scripts": {
+    "build": "echo 'No build step needed'",
+    "sync": "npx cap sync",
+    "ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
+  }
+}
