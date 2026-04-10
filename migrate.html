@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>레시피 마이그레이션</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 500px; margin: 60px auto; padding: 0 20px; }
+    h2 { color: #fb7185; }
+    input { width: 100%; padding: 10px; margin: 8px 0 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #fb7185; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #log { margin-top: 20px; padding: 12px; background: #f9f9f9; border-radius: 8px; font-size: 13px; line-height: 1.8; white-space: pre-wrap; min-height: 60px; }
+    .ok { color: #16a34a; }
+    .err { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <h2>🍼 레시피 마이그레이션</h2>
+  <p>Firestore의 모든 레시피에 현재 계정 UID를 추가합니다.</p>
+
+  <button id="btn" onclick="migrate()">마이그레이션 시작</button>
+  <div id="log">대기 중...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, deleteDoc }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBeyTNKEtaf9_M99Att2TL-G9dsTdkWChk",
+      authDomain:        "baby-meal-recipe.firebaseapp.com",
+      projectId:         "baby-meal-recipe",
+      storageBucket:     "baby-meal-recipe.firebasestorage.app",
+      messagingSenderId: "165719026913",
+      appId:             "1:165719026913:web:04751081edf070b19d5ba0"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    signInAnonymously(auth);
+
+    window.migrate = async () => {
+      const log = document.getElementById("log");
+      const btn = document.getElementById("btn");
+
+      const user = auth.currentUser;
+      if (!user) { log.innerHTML = '<span class="err">Firebase 인증 중... 잠시 후 다시 시도해주세요.</span>'; return; }
+
+      const newUid = user.uid;
+
+      btn.disabled = true;
+      log.innerHTML = `현재 UID: ${newUid}\n\n레시피 조회 중...\n`;
+
+      try {
+        // 전체 레시피 가져오기 (uid 필드 없는 경우)
+        const snap = await getDocs(collection(db, "recipes"));
+
+        log.innerHTML += `총 ${snap.size}개 레시피 발견\n`;
+
+        let count = 0;
+        for (const docSnap of snap.docs) {
+          await updateDoc(doc(db, "recipes", docSnap.id), { uid: newUid });
+          count++;
+          log.innerHTML += `✅ ${docSnap.data().title || "제목없음"} 이전 완료\n`;
+        }
+
+        // 설정 이전
+        log.innerHTML += `\n설정 데이터 조회 중...\n`;
+        // settings 문서 전체 조회 후 첫 번째 것 사용
+        const settingsAll = await getDocs(collection(db, "settings"));
+        const settingsSnap = settingsAll.docs[0];
+        if (settingsSnap?.exists()) {
+          await setDoc(doc(db, "settings", newUid), settingsSnap.data(), { merge: true });
+          log.innerHTML += `✅ 설정(단계/카테고리/순서) 이전 완료\n`;
+        } else {
+          log.innerHTML += `설정 데이터 없음 (건너뜀)\n`;
+        }
+
+        log.innerHTML += `\n<span class="ok">🎉 완료! ${count}개 레시피가 이전됐습니다.\n이제 앱에서 확인하세요.</span>`;
+      } catch (e) {
+        log.innerHTML += `<span class="err">오류: ${e.message}</span>`;
+      }
+
+      btn.disabled = false;
+    };
+  </script>
+</body>
+</html>
