@@ -88,12 +88,41 @@ function App() {
   const [editStageIdx, setEditStageIdx] = useState(null);
   const [editStageVal, setEditStageVal] = useState("");
 
+  const [emailLinked, setEmailLinked] = useState(false);
+  const [linkedEmail, setLinkedEmail] = useState("");
+  const [emailInput, setEmailInput]   = useState("");
+  const [pwInput, setPwInput]         = useState("");
+  const [emailMode, setEmailMode]     = useState("link"); // "link" | "signin"
+  const [emailMsg, setEmailMsg]       = useState("");
+
+  const checkEmailLinked = (user) => {
+    const provider = user?.providerData?.find(p => p.providerId === "password");
+    setEmailLinked(!!provider);
+    setLinkedEmail(provider?.email || "");
+  };
+
   // Firebase 준비 대기
   useEffect(() => {
-    if (window._firebaseReady) { setReady(true); setUid(window._uid); return; }
-    const h = () => { setReady(true); setUid(window._uid); };
+    if (window._firebaseReady) {
+      setReady(true); setUid(window._uid);
+      checkEmailLinked(window._auth?.currentUser);
+      return;
+    }
+    const h = () => { setReady(true); setUid(window._uid); checkEmailLinked(window._auth?.currentUser); };
     window.addEventListener("firebaseReady", h);
     return () => window.removeEventListener("firebaseReady", h);
+  }, []);
+
+  // 인증 상태 변경 감지 (이메일 로그인/연동 시)
+  useEffect(() => {
+    const h = (e) => {
+      const user = e.detail.user;
+      setUid(user.uid);
+      window._uid = user.uid;
+      checkEmailLinked(user);
+    };
+    window.addEventListener("authChanged", h);
+    return () => window.removeEventListener("authChanged", h);
   }, []);
 
   // 실시간 구독 (uid 기반 — 내 데이터만)
@@ -262,6 +291,51 @@ function App() {
   const moveStage = async (from, to) => {
     const next = moveItem(stages, from, to); setStages(next);
     await saveSettings(next, categories);
+  };
+
+  // 이메일 연동
+  const handleLinkEmail = async () => {
+    if (!emailInput || !pwInput) { setEmailMsg("이메일과 비밀번호를 입력해주세요."); return; }
+    try {
+      const { linkWithCredential, EmailAuthProvider } = window._authFns;
+      const credential = EmailAuthProvider.credential(emailInput, pwInput);
+      await linkWithCredential(window._auth.currentUser, credential);
+      setEmailMsg("✅ 연동 완료!");
+      setEmailLinked(true);
+      setLinkedEmail(emailInput);
+      setEmailInput(""); setPwInput("");
+    } catch (e) {
+      if (e.code === "auth/email-already-in-use") setEmailMsg("이미 사용 중인 이메일이에요.");
+      else if (e.code === "auth/weak-password") setEmailMsg("비밀번호는 6자 이상이어야 해요.");
+      else if (e.code === "auth/invalid-email") setEmailMsg("올바른 이메일 형식이 아니에요.");
+      else setEmailMsg("오류: " + e.message);
+    }
+  };
+
+  // 이메일로 로그인 (다른 기기)
+  const handleSignInEmail = async () => {
+    if (!emailInput || !pwInput) { setEmailMsg("이메일과 비밀번호를 입력해주세요."); return; }
+    try {
+      const { signInWithEmailAndPassword } = window._authFns;
+      await signInWithEmailAndPassword(window._auth, emailInput, pwInput);
+      setEmailMsg("✅ 로그인 완료!");
+      setEmailInput(""); setPwInput("");
+    } catch (e) {
+      if (e.code === "auth/user-not-found" || e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") setEmailMsg("이메일 또는 비밀번호가 틀렸어요.");
+      else setEmailMsg("오류: " + e.message);
+    }
+  };
+
+  // 이메일 연동 해제
+  const handleUnlinkEmail = async () => {
+    try {
+      const { unlink } = window._authFns;
+      await unlink(window._auth.currentUser, "password");
+      setEmailLinked(false);
+      setLinkedEmail("");
+    } catch (e) {
+      alert("연동 해제 실패: " + e.message);
+    }
   };
 
   // 계정 삭제 (앱스토어 정책 필수)
@@ -736,6 +810,46 @@ function App() {
             <span className="text-sm text-gray-500">저장된 레시피</span>
             <span className="text-sm font-semibold text-rose-400">{recipes.length}개</span>
           </div>
+        </div>
+
+        {/* 이메일 연동 */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <h3 className="font-bold text-gray-700 mb-1">이메일 연동 📧</h3>
+          <p className="text-xs text-gray-400 mb-3">연동하면 다른 기기에서도 레시피를 볼 수 있어요.</p>
+          {emailLinked ? (
+            <div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                <span className="text-sm text-gray-500">연동된 이메일</span>
+                <span className="text-sm font-semibold text-emerald-500">{linkedEmail}</span>
+              </div>
+              <button onClick={handleUnlinkEmail}
+                className="mt-3 w-full py-2 rounded-xl bg-gray-50 text-gray-400 font-semibold text-sm border border-gray-100">
+                연동 해제
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex rounded-xl overflow-hidden border border-gray-100 mb-3">
+                <button onClick={()=>{setEmailMode("link");setEmailMsg("");}}
+                  className={`flex-1 py-2 text-sm font-semibold ${emailMode==="link" ? "bg-rose-400 text-white" : "bg-gray-50 text-gray-400"}`}>
+                  처음 연동
+                </button>
+                <button onClick={()=>{setEmailMode("signin");setEmailMsg("");}}
+                  className={`flex-1 py-2 text-sm font-semibold ${emailMode==="signin" ? "bg-rose-400 text-white" : "bg-gray-50 text-gray-400"}`}>
+                  다른 기기 로그인
+                </button>
+              </div>
+              <input type="email" value={emailInput} onChange={e=>setEmailInput(e.target.value)}
+                placeholder="이메일" className="w-full px-3 py-2 mb-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-rose-300" />
+              <input type="password" value={pwInput} onChange={e=>setPwInput(e.target.value)}
+                placeholder="비밀번호 (6자 이상)" className="w-full px-3 py-2 mb-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-rose-300" />
+              {emailMsg && <p className={`text-xs mb-2 ${emailMsg.startsWith("✅") ? "text-emerald-500" : "text-red-400"}`}>{emailMsg}</p>}
+              <button onClick={emailMode==="link" ? handleLinkEmail : handleSignInEmail}
+                className="w-full py-3 rounded-xl bg-rose-400 text-white font-bold text-sm">
+                {emailMode==="link" ? "이 기기에 연동하기" : "이메일로 로그인"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 개인정보처리방침 */}

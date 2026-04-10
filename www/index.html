@@ -27,8 +27,10 @@
   <script type="module">
     import { initializeApp }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged }
-      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getAuth, signInAnonymously, onAuthStateChanged,
+      linkWithCredential, EmailAuthProvider, signInWithEmailAndPassword, unlink
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       getFirestore, collection, doc, setDoc, deleteDoc,
       onSnapshot, writeBatch, query, where
@@ -53,6 +55,9 @@
       collection, doc, setDoc, deleteDoc,
       onSnapshot, writeBatch, query, where
     };
+    window._authFns = {
+      linkWithCredential, EmailAuthProvider, signInWithEmailAndPassword, unlink
+    };
 
     // 익명 로그인 — 자동으로 고유 ID 발급
     signInAnonymously(auth).catch(console.error);
@@ -61,7 +66,11 @@
       if (user) {
         window._uid = user.uid;
         window._firebaseReady = true;
-        window.dispatchEvent(new Event("firebaseReady"));
+        window.dispatchEvent(new CustomEvent("authChanged", { detail: { user } }));
+        if (!window._authInitialized) {
+          window._authInitialized = true;
+          window.dispatchEvent(new Event("firebaseReady"));
+        }
       }
     });
   </script>
