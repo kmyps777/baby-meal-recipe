@@ -1,0 +1,10 @@
+# Mac 시스템 파일
+.DS_Store
+
+# Capacitor 빌드 결과물
+node_modules/
+ios/
+android/
+
+# 프로젝트 내부 메모
+CLAUDE.md
