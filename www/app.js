@@ -852,20 +852,6 @@ function App() {
           )}
         </div>
 
-        {/* 개인정보처리방침 */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h3 className="font-bold text-gray-700 mb-3">정보</h3>
-          <button className="w-full flex justify-between items-center py-2 text-sm text-gray-600"
-            onClick={()=>window.open("https://kmyps777.github.io/baby-meal-recipe/www/privacy.html","_blank")}>
-            <span>개인정보처리방침</span>
-            <span className="text-gray-300">›</span>
-          </button>
-          <div className="flex justify-between items-center py-2 border-t border-gray-50">
-            <span className="text-sm text-gray-500">앱 버전</span>
-            <span className="text-sm text-gray-400">1.0.0</span>
-          </div>
-        </div>
-
         {/* 데이터 삭제 (앱스토어 필수) */}
         <div className="bg-white rounded-2xl border border-red-100 p-4">
           <h3 className="font-bold text-gray-700 mb-1">데이터 관리</h3>
