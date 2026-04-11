@@ -132,7 +132,7 @@ function App() {
     const db = window._db;
 
     // 내 레시피만 구독
-    const recipesQ = query(collection(db, "recipes"), where("uid", "==", uid));
+    const recipesQ = collection(db, "users", uid, "recipes");
     const unsubR = onSnapshot(recipesQ, snap => {
       setRecipes(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     });
@@ -199,8 +199,7 @@ function App() {
     try {
       const { doc, setDoc } = window._firebase;
       const id = editId || `recipe_${Date.now()}`;
-      await setDoc(doc(window._db, "recipes", id), {
-        uid, // 내 데이터임을 표시
+      await setDoc(doc(window._db, "users", uid, "recipes", id), {
         title: form.title, stage: form.stage, categories: form.categories,
         ingredients: form.ingredients, steps: form.steps,
         cubeWeight: form.cubeWeight, cubeCount: form.cubeCount,
@@ -215,7 +214,7 @@ function App() {
   const doDelete = async () => {
     const id = delConfirm;
     const { doc, deleteDoc } = window._firebase;
-    await deleteDoc(doc(window._db, "recipes", id));
+    await deleteDoc(doc(window._db, "users", uid, "recipes", id));
     const nextOrder = recipeOrder.filter(oid => oid !== id);
     setRecipeOrder(nextOrder);
     await saveSettings(stages, categories, nextOrder);
@@ -244,7 +243,7 @@ function App() {
     const batch = writeBatch(window._db);
     recipes.forEach(r => {
       if ((r.categories||[]).includes(cat))
-        batch.update(doc(window._db,"recipes",r.id), { categories: r.categories.filter(c=>c!==cat) });
+        batch.update(doc(window._db,"users",uid,"recipes",r.id), { categories: r.categories.filter(c=>c!==cat) });
     });
     await Promise.all([saveSettings(stages, next), batch.commit()]);
   };
@@ -256,7 +255,7 @@ function App() {
     const batch = writeBatch(window._db);
     recipes.forEach(r => {
       if ((r.categories||[]).includes(old))
-        batch.update(doc(window._db,"recipes",r.id), { categories: r.categories.map(c=>c===old?nv:c) });
+        batch.update(doc(window._db,"users",uid,"recipes",r.id), { categories: r.categories.map(c=>c===old?nv:c) });
     });
     await Promise.all([saveSettings(stages, next), batch.commit()]);
   };
@@ -276,7 +275,7 @@ function App() {
     setStages(next); setDelStage(null);
     const { writeBatch, doc } = window._firebase;
     const batch = writeBatch(window._db);
-    recipes.forEach(r => { if (r.stage===s) batch.update(doc(window._db,"recipes",r.id), { stage:"" }); });
+    recipes.forEach(r => { if (r.stage===s) batch.update(doc(window._db,"users",uid,"recipes",r.id), { stage:"" }); });
     await Promise.all([saveSettings(next, categories), batch.commit()]);
   };
   const saveEditStage = async (idx) => {
@@ -285,7 +284,7 @@ function App() {
     setStages(next); setEditStageIdx(null); setEditStageVal("");
     const { writeBatch, doc } = window._firebase;
     const batch = writeBatch(window._db);
-    recipes.forEach(r => { if (r.stage===old) batch.update(doc(window._db,"recipes",r.id), { stage:nv }); });
+    recipes.forEach(r => { if (r.stage===old) batch.update(doc(window._db,"users",uid,"recipes",r.id), { stage:nv }); });
     await Promise.all([saveSettings(next, categories), batch.commit()]);
   };
   const moveStage = async (from, to) => {
@@ -344,7 +343,7 @@ function App() {
       const { writeBatch, doc, collection, query, where, getDocs } = window._firebase;
       // 1. 내 모든 레시피 삭제
       const batch = writeBatch(window._db);
-      recipes.forEach(r => batch.delete(doc(window._db, "recipes", r.id)));
+      recipes.forEach(r => batch.delete(doc(window._db, "users", uid, "recipes", r.id)));
       // 2. 내 설정 삭제
       batch.delete(doc(window._db, "settings", uid));
       await batch.commit();

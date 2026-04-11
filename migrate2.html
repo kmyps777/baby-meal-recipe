@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>구조 마이그레이션 v2</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 500px; margin: 60px auto; padding: 0 20px; }
+    h2 { color: #fb7185; }
+    button { width: 100%; padding: 12px; background: #fb7185; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #log { margin-top: 20px; padding: 12px; background: #f9f9f9; border-radius: 8px; font-size: 13px; line-height: 1.8; white-space: pre-wrap; min-height: 60px; }
+    .ok { color: #16a34a; }
+    .err { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <h2>🍼 데이터 구조 마이그레이션</h2>
+  <p>기존 <code>recipes/{id}</code> → <code>users/{uid}/recipes/{id}</code> 로 이전합니다.</p>
+  <button id="btn" onclick="migrate()">마이그레이션 시작</button>
+  <div id="log">대기 중...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBeyTNKEtaf9_M99Att2TL-G9dsTdkWChk",
+      authDomain:        "baby-meal-recipe.firebaseapp.com",
+      projectId:         "baby-meal-recipe",
+      storageBucket:     "baby-meal-recipe.firebasestorage.app",
+      messagingSenderId: "165719026913",
+      appId:             "1:165719026913:web:04751081edf070b19d5ba0"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    onAuthStateChanged(auth, user => {
+      if (!user) signInAnonymously(auth).catch(console.error);
+    });
+
+    window.migrate = async () => {
+      const log = document.getElementById("log");
+      const btn = document.getElementById("btn");
+
+      const user = auth.currentUser;
+      if (!user) { log.innerHTML = '<span class="err">Firebase 인증 중... 잠시 후 다시 시도해주세요.</span>'; return; }
+
+      const uid = user.uid;
+      btn.disabled = true;
+      log.innerHTML = `현재 UID: ${uid}\n\n기존 recipes 컬렉션 조회 중...\n`;
+
+      try {
+        const snap = await getDocs(collection(db, "recipes"));
+        const myDocs = snap.docs.filter(d => !d.data().uid || d.data().uid === uid);
+
+        log.innerHTML += `총 ${myDocs.length}개 레시피 발견\n\n`;
+
+        let count = 0;
+        for (const docSnap of myDocs) {
+          const data = { ...docSnap.data() };
+          delete data.uid; // uid 필드 제거 (경로에 포함되므로)
+          await setDoc(doc(db, "users", uid, "recipes", docSnap.id), data);
+          await deleteDoc(doc(db, "recipes", docSnap.id));
+          count++;
+          log.innerHTML += `✅ ${data.title || "제목없음"} 이전 완료\n`;
+        }
+
+        log.innerHTML += `\n<span class="ok">🎉 완료! ${count}개 레시피가 새 구조로 이전됐습니다.\n이제 앱에서 확인하세요.</span>`;
+      } catch (e) {
+        log.innerHTML += `<span class="err">오류: ${e.message}</span>`;
+      }
+
+      btn.disabled = false;
+    };
+  </script>
+</body>
+</html>
