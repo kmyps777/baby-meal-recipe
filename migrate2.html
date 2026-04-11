@@ -15,15 +15,19 @@
 </head>
 <body>
   <h2>🍼 데이터 구조 마이그레이션</h2>
-  <p>기존 <code>recipes/{id}</code> → <code>users/{uid}/recipes/{id}</code> 로 이전합니다.</p>
+  <p>
+    기존 구조 → 새 구조로 이전합니다.<br/>
+    <code>recipes/{id}</code> → <code>users/{uid}/recipes/{id}</code><br/>
+    <code>settings/{uid}</code> → <code>users/{uid}</code>
+  </p>
   <button id="btn" onclick="migrate()">마이그레이션 시작</button>
   <div id="log">대기 중...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword }
+    import { getAuth, signInAnonymously, onAuthStateChanged }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc }
+    import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -52,25 +56,36 @@
 
       const uid = user.uid;
       btn.disabled = true;
-      log.innerHTML = `현재 UID: ${uid}\n\n기존 recipes 컬렉션 조회 중...\n`;
+      log.innerHTML = `현재 UID: ${uid}\n\n`;
 
       try {
+        // 1. 레시피 이전
+        log.innerHTML += `📋 recipes 컬렉션 조회 중...\n`;
         const snap = await getDocs(collection(db, "recipes"));
-        const myDocs = snap.docs.filter(d => !d.data().uid || d.data().uid === uid);
-
-        log.innerHTML += `총 ${myDocs.length}개 레시피 발견\n\n`;
+        log.innerHTML += `총 ${snap.size}개 레시피 발견\n`;
 
         let count = 0;
-        for (const docSnap of myDocs) {
+        for (const docSnap of snap.docs) {
           const data = { ...docSnap.data() };
-          delete data.uid; // uid 필드 제거 (경로에 포함되므로)
+          delete data.uid;
           await setDoc(doc(db, "users", uid, "recipes", docSnap.id), data);
           await deleteDoc(doc(db, "recipes", docSnap.id));
           count++;
           log.innerHTML += `✅ ${data.title || "제목없음"} 이전 완료\n`;
         }
 
-        log.innerHTML += `\n<span class="ok">🎉 완료! ${count}개 레시피가 새 구조로 이전됐습니다.\n이제 앱에서 확인하세요.</span>`;
+        // 2. 설정 이전
+        log.innerHTML += `\n⚙️ settings 이전 중...\n`;
+        const settingsSnap = await getDoc(doc(db, "settings", uid));
+        if (settingsSnap.exists()) {
+          await setDoc(doc(db, "users", uid), settingsSnap.data(), { merge: true });
+          await deleteDoc(doc(db, "settings", uid));
+          log.innerHTML += `✅ 설정(단계/카테고리/순서) 이전 완료\n`;
+        } else {
+          log.innerHTML += `설정 데이터 없음 (건너뜀)\n`;
+        }
+
+        log.innerHTML += `\n<span class="ok">🎉 완료! ${count}개 레시피와 설정이 새 구조로 이전됐습니다.\n이제 앱에서 확인하세요.</span>`;
       } catch (e) {
         log.innerHTML += `<span class="err">오류: ${e.message}</span>`;
       }

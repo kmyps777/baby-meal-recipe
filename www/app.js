@@ -138,7 +138,7 @@ function App() {
     });
 
     // 내 설정만 구독
-    const unsubS = onSnapshot(doc(db, "settings", uid), snap => {
+    const unsubS = onSnapshot(doc(db, "users", uid), snap => {
       if (snap.exists()) {
         const d = snap.data();
         if (d.stages?.length)      setStages(d.stages);
@@ -156,7 +156,7 @@ function App() {
     const { doc, setDoc } = window._firebase;
     const data = { stages: s, categories: c };
     if (ro !== undefined) data.recipeOrder = ro;
-    await setDoc(doc(window._db, "settings", uid), data, { merge: true });
+    await setDoc(doc(window._db, "users", uid), data, { merge: true });
   };
 
   // 색상
@@ -345,7 +345,7 @@ function App() {
       const batch = writeBatch(window._db);
       recipes.forEach(r => batch.delete(doc(window._db, "users", uid, "recipes", r.id)));
       // 2. 내 설정 삭제
-      batch.delete(doc(window._db, "settings", uid));
+      batch.delete(doc(window._db, "users", uid));
       await batch.commit();
       // 3. Firebase Auth 계정 삭제
       await window._auth.currentUser.delete();
