@@ -3,9 +3,18 @@
   "appName": "우리아기 이유식",
   "webDir": "www",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "*.googleapis.com",
+      "*.gstatic.com",
+      "*.firebaseapp.com",
+      "*.firebasestorage.app",
+      "unpkg.com",
+      "cdn.tailwindcss.com",
+      "babeljs.io"
+    ]
   },
   "ios": {
-    "contentInset": "automatic"
+    "contentInset": "never"
   }
 }
